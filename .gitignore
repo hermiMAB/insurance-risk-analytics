@@ -1,12 +1,10 @@
-data/raw/*.csv
-data/processed/*.csv
+data/*.csv
+data/*.txt
 data/*.db
+
 data/processed/*.csv
 .ipynb_checkpoints/
 .venv/
-.requirements.txt
-!data/raw/.gitkeep
-!data/processed/.gitkeep
 .env
 __pycache__/
 *.pyc
