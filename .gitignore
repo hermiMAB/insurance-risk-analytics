@@ -1,7 +1,7 @@
 data/*.csv
 data/*.txt
 data/*.db
-
+dvc-storage/
 data/processed/*.csv
 .ipynb_checkpoints/
 .venv/
