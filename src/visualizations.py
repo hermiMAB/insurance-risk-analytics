@@ -133,7 +133,7 @@ def plot_province_risk(df: pd.DataFrame):
 
 def plot_outliers(df: pd.DataFrame):
     """Uses box plots to detect outliers on key numerical features."""
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(18, 5))
     
     # Log scale is used here because insurance outliers are extreme.
     
@@ -147,9 +147,6 @@ def plot_outliers(df: pd.DataFrame):
     axes[1].set_xscale('log')
     axes[1].set_title('Outliers: Total Claims (Log Scale)', fontweight='bold')
     
-    sns.boxplot(x=df['CustomValueEstimate'], color=PALETTE['secondary'], ax=axes[2])
-    axes[2].set_xscale('log')
-    axes[2].set_title('Outliers: Custom Value Estimate (Log Scale)', fontweight='bold')
     
     plt.tight_layout()
     plt.show()
@@ -166,28 +163,57 @@ def plot_loss_ratio(df: pd.DataFrame):
 
     # 1. By Province
     lr_prov = get_loss_ratio('Province')
-    sns.barplot(x='LossRatio', y='Province', data=lr_prov, palette='Blues_r', ax=axes[0])
+    sns.barplot(
+        x='LossRatio', 
+        y='Province', 
+        data=lr_prov, 
+        order=lr_prov['Province'],  # <--- Forces it to sort by Loss Ratio
+        hue='Province',             # <--- Fixes the FutureWarning
+        palette='Blues_r', 
+        legend=False,
+        dodge=False,
+        ax=axes[0]
+    )
     axes[0].set_title('Loss Ratio (%) by Province', fontweight='bold')
     axes[0].set_xlabel('Loss Ratio (%)')
     axes[0].set_ylabel('')
 
     # 2. By Vehicle Type
     lr_veh = get_loss_ratio('VehicleType')
-    sns.barplot(x='LossRatio', y='VehicleType', data=lr_veh, palette='Oranges_r', ax=axes[1])
+    sns.barplot(
+        x='LossRatio', 
+        y='VehicleType', 
+        data=lr_veh, 
+        order=lr_veh['VehicleType'], # <--- Forces it to sort by Loss Ratio
+        hue='VehicleType',           # <--- Fixes the FutureWarning
+        palette='Oranges_r', 
+        legend=False,
+        dodge=False,
+        ax=axes[1]
+    )
     axes[1].set_title('Loss Ratio (%) by Vehicle Type', fontweight='bold')
     axes[1].set_xlabel('Loss Ratio (%)')
     axes[1].set_ylabel('')
 
     # 3. By Gender
     lr_gen = get_loss_ratio('Gender')
-    sns.barplot(x='Gender', y='LossRatio', data=lr_gen, palette='Purples_r', ax=axes[2])
+    sns.barplot(
+        x='LossRatio', 
+        y='Gender', 
+        data=lr_gen, 
+        order=lr_gen['Gender'],      # <--- Forces it to sort by Loss Ratio
+        hue='Gender',                # <--- Fixes the FutureWarning
+        palette='Purples_r', 
+        legend=False,
+        dodge=False,
+        ax=axes[2]
+    )
     axes[2].set_title('Loss Ratio (%) by Gender', fontweight='bold')
     axes[2].set_ylabel('Loss Ratio (%)')
     axes[2].set_xlabel('')
 
     plt.tight_layout()
     plt.show()
-
 def plot_temporal_trends(df: pd.DataFrame):
     """Plots claim frequency and severity over time."""
     fig, axes = plt.subplots(1, 2, figsize=(18, 6))
@@ -223,22 +249,29 @@ def plot_vehicle_claims(df: pd.DataFrame):
     # Filter for actual claims, then group by make
     actual_claims = df[df['TotalClaims'] > 0]
     
-    # Filter out makes with very few claims to avoid noisy data (e.g., 1 claim for $100k)
+    # Filter out makes with very few claims to avoid noisy data
     claim_counts = actual_claims['make'].value_counts()
     valid_makes = claim_counts[claim_counts >= 10].index
     filtered_claims = actual_claims[actual_claims['make'].isin(valid_makes)]
     
-    make_severity = filtered_claims.groupby('make')['TotalClaims'].mean().sort_values(ascending=False)
+    # Use observed=True to drop empty categories during the groupby
+    make_severity = filtered_claims.groupby('make', observed=True)['TotalClaims'].mean().sort_values(ascending=False)
+    
+    top_10 = make_severity.head(10)
+    bottom_10 = make_severity.tail(10)
     
     # 1. Top 10 Highest Severity
-    sns.barplot(x=make_severity.head(10).values, y=make_severity.head(10).index, palette='Reds_r', ax=axes[0])
+    # .astype(str) forces Seaborn to forget the unused categories and only plot these 10!
+    sns.barplot(x=top_10.values, y=top_10.index.astype(str), palette='Reds_r', ax=axes[0])
     axes[0].set_title('Top 10 Vehicle Makes (Highest Avg Claim)', fontweight='bold')
     axes[0].set_xlabel('Average Claim Amount ($)')
+    axes[0].set_ylabel('Vehicle Make')
     
     # 2. Bottom 10 Lowest Severity
-    sns.barplot(x=make_severity.tail(10).values, y=make_severity.tail(10).index, palette='Greens_r', ax=axes[1])
+    sns.barplot(x=bottom_10.values, y=bottom_10.index.astype(str), palette='Greens_r', ax=axes[1])
     axes[1].set_title('Top 10 Vehicle Makes (Lowest Avg Claim)', fontweight='bold')
     axes[1].set_xlabel('Average Claim Amount ($)')
+    axes[1].set_ylabel('')
     
     plt.tight_layout()
     plt.show()

@@ -397,6 +397,9 @@ def pre_eda_profile(df: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
 
     return missing
 
+import pandas as pd
+import numpy as np
+
 def handle_missing_values(
     df: pd.DataFrame,
     drop_threshold: float = 0.60
@@ -407,25 +410,18 @@ def handle_missing_values(
 
     Strategy Overview
     -----------------
-    1. Drop columns with extremely high missingness
-       (>60% missing by default).
-
+    1. Drop columns with extremely high missingness (>60% missing by default).
     2. Impute continuous numeric features using median.
-
     3. Impute discrete/count vehicle features using mode.
-
-    4. Fill categorical missing values with 'Unknown'
-       while preserving category dtype for memory efficiency.
-
-    5. Preserve missing datetime values (NaT) because
-       synthetic date imputation may distort temporal analysis.
+    4. Infer missing Gender values deterministically from the Title column.
+    5. Fill categorical missing values with 'Unknown' while preserving category dtype.
+    6. Preserve missing datetime values (NaT) to prevent temporal distortion.
 
     Parameters
     ----------
     df : pd.DataFrame
         Input dataframe.
-
-    drop_threshold : float, default=0.95
+    drop_threshold : float, default=0.60
         Missing value percentage threshold used for dropping columns.
 
     Returns
@@ -537,6 +533,58 @@ def handle_missing_values(
             )
 
     # ============================================================
+    # 3.5 INFER GENDER FROM TITLE
+    # ============================================================
+    
+    # ============================================================
+    # 3.5 INFER GENDER FROM TITLE (BUSINESS-AWARE)
+    # ============================================================
+    
+    print("\n3.5. INFERRING GENDER FROM TITLE")
+    
+    if 'Gender' in df.columns and 'Title' in df.columns and 'LegalType' in df.columns:
+        
+        # 1. Strip hidden spaces from Title (fixes the "Mr " vs "Mr" bug)
+        df['Title'] = df['Title'].astype(str).str.strip()
+        
+        # 2. Force 'Not specified' to officially be a Pandas NaN
+        df['Gender'] = np.where(
+            df['Gender'].astype(str).str.contains('not specified', case=False, na=False),
+            np.nan,
+            df['Gender']
+        )
+        
+        missing_gender_before = df['Gender'].isnull().sum()
+        
+        # 3. Define what constitutes a "Human" in your LegalType column
+        # Update this list based on what your dataset actually calls individuals!
+        human_legal_types = ['Individual', 'Sole proprieter'] 
+        
+        # Create a filter mask: Only rows that are humans AND missing gender
+        is_human = df['LegalType'].astype(str).str.strip().isin(human_legal_types)
+        is_missing_gender = df['Gender'].isna()
+        
+        # 4. Define the mapping
+        title_gender_map = {
+            'Mr': 'Male',
+            'Mrs': 'Female',
+            'Ms': 'Female',
+            'Miss': 'Female'
+        }
+        
+        # 5. Map the titles to genders ONLY for the filtered human rows
+        inferred_genders = df.loc[is_human & is_missing_gender, 'Title'].map(title_gender_map)
+        
+        # Fill only those specific gaps
+        df.loc[is_human & is_missing_gender, 'Gender'] = inferred_genders
+        
+        missing_gender_after = df['Gender'].isnull().sum()
+        filled_count = missing_gender_before - missing_gender_after
+        
+        print(f"  • Gender: Deterministically inferred {filled_count:,} human values from Title.")
+        print(f"  • Gender: Left Corporate/Commercial entities as Unknown/NaN.")
+
+    # ============================================================
     # 4. CATEGORICAL IMPUTATION
     # ============================================================
 
@@ -557,28 +605,29 @@ def handle_missing_values(
         if col in df.columns
     ]
 
-    print("\n4. CATEGORICAL IMPUTATION")
+    print("\n4. CATEGORICAL IMPUTATION (FALLBACK)")
 
     for col in categorical_cols:
 
         missing_before = df[col].isnull().sum()
+        
+        if missing_before > 0:
+            # Preserve category dtype
+            if str(df[col].dtype) == "category":
 
-        # Preserve category dtype
-        if str(df[col].dtype) == "category":
+                if "Unknown" not in df[col].cat.categories:
 
-            if "Unknown" not in df[col].cat.categories:
+                    df[col] = df[col].cat.add_categories(
+                        ["Unknown"]
+                    )
 
-                df[col] = df[col].cat.add_categories(
-                    ["Unknown"]
-                )
+            df[col] = df[col].fillna("Unknown")
 
-        df[col] = df[col].fillna("Unknown")
-
-        print(
-            f"  • {col}: "
-            f"filled {missing_before:,} missing "
-            f"values with 'Unknown'"
-        )
+            print(
+                f"  • {col}: "
+                f"filled {missing_before:,} missing "
+                f"values with 'Unknown'"
+            )
 
     # ============================================================
     # 5. DATETIME HANDLING
@@ -599,10 +648,11 @@ def handle_missing_values(
 
         missing_dates = df[col].isnull().sum()
 
-        print(
-            f"  • {col}: preserved "
-            f"{missing_dates:,} missing values as NaT"
-        )
+        if missing_dates > 0:
+            print(
+                f"  • {col}: preserved "
+                f"{missing_dates:,} missing values as NaT"
+            )
 
     # ============================================================
     # 6. FINAL VALIDATION
@@ -628,6 +678,17 @@ def handle_missing_values(
 
         print("  • Remaining missing values:\n")
         print(remaining_missing)
+    # Check how many we are starting with
+    missing_mmcode_before = df['mmcode'].isnull().sum()
+    print(f"Rows missing 'mmcode' before: {missing_mmcode_before}")
+
+    # Drop the rows where 'mmcode' is NaN
+    df.dropna(subset=['mmcode'], inplace=True)
+
+    # Verify they are gone
+    missing_mmcode_after = df['mmcode'].isnull().sum()
+    print(f"Rows missing 'mmcode' after: {missing_mmcode_after}")
+    print(f"Total rows remaining in dataset: {len(df):,}")
 
     # ============================================================
     # 7. MEMORY SUMMARY
@@ -646,3 +707,16 @@ def handle_missing_values(
 
     return df
 
+if __name__ == "__main__":
+    # This only runs when executed via terminal: python src/eda_utils.py
+    import pandas as pd
+    
+    # 1. Load the raw data
+    raw_df = pd.read_csv("data/MachineLearningRating_v3.txt", sep="|") 
+    
+    # 2. Run your cleaning functions
+    df_casted = cast_columns(raw_df)
+    df_clean = handle_missing_values(df_casted)
+    
+    # 3. Save the output for DVC to track
+    df_clean.to_csv("data/MachineLearningRating_v3_clean.csv", index=False)
