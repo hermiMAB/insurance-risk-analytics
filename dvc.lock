@@ -1,0 +1,18 @@
+schema: '2.0'
+stages:
+  preprocess_data:
+    cmd: python src/eda_utils.py
+    deps:
+    - path: data/MachineLearningRating_v3.txt
+      hash: md5
+      md5: f6b7009b68ae21372b7deca9307fbb23
+      size: 529363713
+    - path: src/eda_utils.py
+      hash: md5
+      md5: cbc6cc892aae23305eef3e3e287d9666
+      size: 22234
+    outs:
+    - path: data/MachineLearningRating_v3_clean.csv
+      hash: md5
+      md5: 2c022e16ab7f10a505a30fe5020689fd
+      size: 490418286
