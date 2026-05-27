@@ -6,3 +6,10 @@ stages:
     - src/eda_utils.py
     outs:
     - data/MachineLearningRating_v3_clean.csv
+  prepare_modeling:
+    cmd: python src/data_processing.py
+    deps:
+    - data/MachineLearningRating_v3_clean.csv
+    - src/data_processing.py
+    outs:
+    - data/preprocessed_data.csv
