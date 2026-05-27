@@ -1,0 +1,8 @@
+stages:
+  preprocess_data:
+    cmd: python src/eda_utils.py
+    deps:
+    - data/MachineLearningRating_v3.txt
+    - src/eda_utils.py
+    outs:
+    - data/MachineLearningRating_v3_clean.csv
