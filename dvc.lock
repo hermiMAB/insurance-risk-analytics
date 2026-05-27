@@ -16,3 +16,19 @@ stages:
       hash: md5
       md5: 2c022e16ab7f10a505a30fe5020689fd
       size: 490418286
+  prepare_modeling:
+    cmd: python src/data_processing.py
+    deps:
+    - path: data/MachineLearningRating_v3_clean.csv
+      hash: md5
+      md5: 2c022e16ab7f10a505a30fe5020689fd
+      size: 490418286
+    - path: src/data_processing.py
+      hash: md5
+      md5: 0a2c1848b8dbcac872db3469b7921da0
+      size: 4823
+    outs:
+    - path: data/preprocessed_data.csv
+      hash: md5
+      md5: 655efe4b588c00525310c0e2ccd634ef
+      size: 457147017
