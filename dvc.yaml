@@ -13,3 +13,10 @@ stages:
     - src/data_processing.py
     outs:
     - data/preprocessed_data.csv
+  train_models:
+    cmd: python src/modeling.py
+    deps:
+    - data/preprocessed_data.csv
+    - src/modeling.py
+    outs:
+    - models
