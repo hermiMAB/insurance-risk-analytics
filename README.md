@@ -39,3 +39,21 @@ insurance-risk-analytics/
 ├── README.md
 ├── requirements.txt
 └── .dvc/                      # DVC configuration
+
+
+## How to Reproduce the Data Pipeline
+To fetch the version-controlled datasets and trained models for this project, ensure you have DVC installed and run the following command in your terminal:
+`dvc pull`
+
+Alternatively, you can reproduce the entire data processing and modeling pipeline locally from scratch by running:
+`dvc repro`
+
+**Tracked Artifacts & Datasets:**
+* `data/MachineLearningRating_v3.txt`: The original, unaltered claims dataset.
+* `data/MachineLearningRating_v3_clean.csv`: The cleaned dataset after initial EDA and missing value handling.
+* `data/preprocessed_data.csv`: The final engineered, scaled, and encoded dataset ready for machine learning.
+* `models/`: Contains the serialized predictive models trained to estimate claim severity:
+  * `linear_regression.joblib`
+  * `decision_tree.joblib`
+  * `random_forest.joblib`
+  * `xgboost.joblib`
