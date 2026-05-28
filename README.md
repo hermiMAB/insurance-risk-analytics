@@ -38,7 +38,7 @@ insurance-risk-analytics/
 │   └── final_report.md
 ├── README.md
 ├── requirements.txt
-└── .dvc/                      # DVC configuration
+└── .dvc/                     
 
 
 ## How to Reproduce the Data Pipeline
@@ -57,3 +57,4 @@ Alternatively, you can reproduce the entire data processing and modeling pipelin
   * `decision_tree.joblib`
   * `random_forest.joblib`
   * `xgboost.joblib`
+
