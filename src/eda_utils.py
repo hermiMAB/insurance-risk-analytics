@@ -402,7 +402,7 @@ import numpy as np
 
 def handle_missing_values(
     df: pd.DataFrame,
-    drop_threshold: float = 0.60
+    drop_threshold: float = 0.80
 ) -> pd.DataFrame:
     """
     Handle missing values using scalable and business-aware
